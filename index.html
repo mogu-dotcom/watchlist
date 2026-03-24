@@ -474,19 +474,19 @@ async function loadStockData(code, market) {
   const cur = meta.regularMarketPrice ?? validCloses[n - 1];
   const currency = meta.currency ?? 'USD';
 
-  // ── 1D% (전일 종가 기준) ──────────────────────────────────────────────
-  // 우선순위 1: Yahoo regularMarketChangePercent (전일 종가 → 현재가, 미장 포함)
-  // 우선순위 2: (regularMarketPrice - previousClose) / previousClose  ← 미장 proxy 누락 대비
+  // 우선순위 1: (regularMarketPrice - previousClose) / previousClose
+  //   → 미장 휴장/프리마켓 시 regularMarketChangePercent=0 오류 방지
+  // 우선순위 2: Yahoo regularMarketChangePercent (0이 아닐 때만 사용)
   // 우선순위 3: adjclose 역사 마지막 2일 계산 (최후 fallback)
   let d1pct;
   const metaPct   = meta.regularMarketChangePercent;
   const prevClose = meta.previousClose;          // 실제 전일 종가 (비조정)
   const curPrice  = meta.regularMarketPrice;     // 현재가 (비조정)
-  if (metaPct != null && !isNaN(metaPct)) {
-    d1pct = metaPct;
-  } else if (prevClose && curPrice) {
-    // previousClose 기반 계산 — 미장 주식에서 proxy가 %값 누락 시 보정
+  if (prevClose && curPrice && prevClose > 0) {
+    // previousClose 우선 — 미장 휴장 중 regularMarketChangePercent=0 방지
     d1pct = ((curPrice - prevClose) / prevClose) * 100;
+  } else if (metaPct != null && !isNaN(metaPct) && metaPct !== 0) {
+    d1pct = metaPct;
   } else if (n >= 2 && validCloses[n - 2]) {
     d1pct = ((validCloses[n - 1] - validCloses[n - 2]) / validCloses[n - 2]) * 100;
   } else {
