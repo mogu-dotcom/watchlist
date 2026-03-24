@@ -156,6 +156,16 @@
     .neg { color: var(--red); }
     .neu { color: var(--muted); }
 
+    /* RSI badge */
+    .rsi-cell { font-weight: 700; font-size: 12px; white-space: nowrap; }
+    .rsi-hot  { color: #f85149; }   /* >70 ê³¼ë§¤ì */
+    .rsi-cold { color: #3fb950; }   /* <30 ê³¼ë§¤ë */
+    .rsi-mid  { color: var(--text); }
+
+    /* Growth estimate cells */
+    .growth-cell { font-size: 11px; font-weight: 600; white-space: nowrap; text-align: right; }
+    .growth-na   { color: var(--dim); font-weight: 400; }
+
     /* SMA badge */
     .sma-badge {
       display: inline-block; padding: 2px 8px; border-radius: 4px;
@@ -308,7 +318,7 @@ function fmtPct(v) {
 
 function fmtPrice(v, cur) {
   if (v == null) return '-';
-  if (cur === 'KRW') return Math.round(v).toLocaleString('ko-KR') + 'ì°';
+  if (cur === 'KRW') return Math.round(v).toLocaleString('ko-KR') + 'ì';
   return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -349,6 +359,24 @@ function sparkSVG(prices, w = 100, h = 36) {
 }
 
 // âââââââââââââââââââââââââââââââââââââââââââ
+//  RSI CALCULATION
+// âââââââââââââââââââââââââââââââââââââââââââ
+function calcRSI(closes, period = 14) {
+  if (!closes || closes.length < period + 1) return null;
+  const changes = closes.slice(1).map((c, i) => c - closes[i]);
+  const gains   = changes.map(c => Math.max(0,  c));
+  const losses  = changes.map(c => Math.max(0, -c));
+  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < changes.length; i++) {
+    avgGain = (avgGain * (period - 1) + gains[i]) / period;
+    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+  }
+  if (avgLoss === 0) return 100;
+  return 100 - (100 / (1 + avgGain / avgLoss));
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââ
 //  YAHOO FINANCE FETCH
 // âââââââââââââââââââââââââââââââââââââââââââ
 async function fetchYahoo(tk) {
@@ -375,6 +403,35 @@ async function fetchYahoo(tk) {
   }
 
   throw new Error(`${tk} â ë°ì´í°ë¥¼ ê°ì ¸ì¬ ì ììµëë¤. ì ì í ë¤ì ìëí´ ì£¼ì¸ì.`);
+}
+
+async function fetchGrowthData(tk) {
+  const url = `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${tk}?modules=earningsTrend`;
+  let json = null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) json = await res.json();
+  } catch {}
+  if (!json?.quoteSummary?.result?.[0]) {
+    for (const proxyFn of PROXIES) {
+      try {
+        const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(8000) });
+        if (res.ok) {
+          const j = await res.json();
+          if (j?.quoteSummary?.result?.[0]) { json = j; break; }
+        }
+      } catch {}
+    }
+  }
+  const trends = json?.quoteSummary?.result?.[0]?.earningsTrend?.trend || [];
+  const getG = (period) => {
+    const t = trends.find(x => x.period === period);
+    return {
+      rev: t?.revenueEstimate?.growth?.raw ?? null,  // Revenue YoY ì±ì¥ë¥ 
+      eps: t?.earningsEstimate?.growth?.raw ?? null, // EPS YoY ì±ì¥ë¥ 
+    };
+  };
+  return { nextQ: getG('+1q'), curY: getG('0y') };
 }
 
 async function loadStockData(code, market) {
@@ -433,9 +490,16 @@ async function loadStockData(code, market) {
   // ââ 30ì¼ ì¤íì´í¬ âââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const spark = validCloses.slice(-30);
 
+  // ââ RSI(14) âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  const rsi = calcRSI(validCloses);
+
   const stockName = meta.longName || meta.shortName || null;
 
-  return { cur, currency, d1pct, d1Mpct, ytdPct, aboveSMA50, sma50, spark, stockName, updatedAt: new Date().toISOString() };
+  // ââ ì±ì¥ë¥  ì¶ì ì¹ (Yahoo earningsTrend) ââââââââââââââââââââââââââââââ
+  let growth = { nextQ: { rev: null, eps: null }, curY: { rev: null, eps: null } };
+  try { growth = await fetchGrowthData(tk); } catch {}
+
+  return { cur, currency, d1pct, d1Mpct, ytdPct, aboveSMA50, sma50, spark, rsi, growth, stockName, updatedAt: new Date().toISOString() };
 }
 
 // âââââââââââââââââââââââââââââââââââââââââââ
@@ -491,7 +555,12 @@ function buildPanel(sec) {
       <th>1M %</th>
       <th>YTD %</th>
       <th>MA50</th>
+      <th title="RSI(14) â 70â ê³¼ë§¤ì Â· 30â ê³¼ë§¤ë">RSI</th>
       <th style="min-width:108px">30ì¼ ì¤íì´í¬</th>
+      <th title="ë¤ì ë¶ê¸° ë§¤ì¶ YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ë¤ìQ<br>ë§¤ì¶%</th>
+      <th title="ë¤ì ë¶ê¸° EPS YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ë¤ìQ<br>EPS%</th>
+      <th title="ì¬í´ ë§¤ì¶ YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ì¬í´<br>ë§¤ì¶%</th>
+      <th title="ì¬í´ EPS YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ì¬í´<br>EPS%</th>
       <th>í¹ì§</th>
       <th>ì£¼ìì´ì</th>
       <th></th>
@@ -501,7 +570,7 @@ function buildPanel(sec) {
     tbody.id = 'tbody-' + sec.id;
 
     if (sec.stocks.length === 0) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="12">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="17">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
     } else {
       sec.stocks.forEach(st => tbody.appendChild(buildRow(sec.id, st)));
     }
@@ -554,6 +623,27 @@ function buildRow(sectorId, st) {
       : `<span class="sma-badge sma-below">â¼ MA50 ìë</span>`;
   }
 
+  // RSI
+  let rsiHtml = `<span class="rsi-cell neu">-</span>`;
+  if (pd && pd.rsi != null) {
+    const rv = pd.rsi;
+    const rcls = rv >= 70 ? 'rsi-hot' : rv <= 30 ? 'rsi-cold' : 'rsi-mid';
+    rsiHtml = `<span class="rsi-cell ${rcls}">${rv.toFixed(1)}</span>`;
+  }
+
+  // Growth helpers
+  const fmtG = (v) => {
+    if (v == null) return `<span class="growth-cell growth-na">-</span>`;
+    const pct = (v * 100).toFixed(1);
+    const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
+    return `<span class="growth-cell ${cls}">${v >= 0 ? '+' : ''}${pct}%</span>`;
+  };
+  const g = pd?.growth || {};
+  const nqRev = fmtG(g.nextQ?.rev ?? null);
+  const nqEps = fmtG(g.nextQ?.eps ?? null);
+  const cyRev = fmtG(g.curY?.rev ?? null);
+  const cyEps = fmtG(g.curY?.eps ?? null);
+
   const spark = pd && pd.spark ? sparkSVG(pd.spark) : sparkSVG(null);
   tr.innerHTML = `
     <td class="code-cell">${st.code}</td>
@@ -570,7 +660,12 @@ function buildRow(sectorId, st) {
     <td class="pct-cell ${d1M.cls}">${d1M.text}</td>
     <td class="pct-cell ${ytd.cls}">${ytd.text}</td>
     <td>${smaBadge}</td>
+    <td style="text-align:right">${rsiHtml}</td>
     <td class="spark-cell">${spark}</td>
+    <td style="text-align:right">${nqRev}</td>
+    <td style="text-align:right">${nqEps}</td>
+    <td style="text-align:right">${cyRev}</td>
+    <td style="text-align:right">${cyEps}</td>
     <td><div class="note-cell ${st.features ? '' : 'empty'}"
           onclick="editNote(this, '${sectorId}', '${st.id}', 'features')">${st.features || ''}</div></td>
     <td><div class="note-cell ${st.issues ? '' : 'empty'}"
@@ -761,7 +856,7 @@ function deleteStock(sectorId, stockId) {
   if (badge) badge.textContent = sec.stocks.length + 'ì¢ëª©';
   if (sec.stocks.length === 0) {
     const tbody = document.getElementById('tbody-' + sectorId);
-    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="11">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="17">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
   }
 }
 
