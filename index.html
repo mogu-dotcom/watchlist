@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ê´ì¬ì¢ëª© ëìë³´ë</title>
+  <title>관심종목 대시보드</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,7 +36,7 @@
       min-height: 100vh;
     }
 
-    /* ââ HEADER ââ */
+    /* ── HEADER ── */
     .header {
       position: sticky; top: 0; z-index: 200;
       background: var(--surface);
@@ -53,7 +53,7 @@
     .header-sub { font-size: 11px; color: var(--muted); }
     .header-right { display: flex; align-items: center; gap: 8px; }
 
-    /* ââ BUTTONS ââ */
+    /* ── BUTTONS ── */
     .btn {
       padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border);
       font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s;
@@ -66,10 +66,10 @@
     .btn-icon   { padding: 4px 7px; background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 4px; font-size: 14px; }
     .btn-icon:hover { background: var(--surface2); color: var(--text); }
 
-    /* ââ MAIN ââ */
+    /* ── MAIN ── */
     .main { padding: 18px 24px 40px; max-width: 1700px; margin: 0 auto; }
 
-    /* ââ SECTOR PANEL ââ */
+    /* ── SECTOR PANEL ── */
     .sector-panel {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -93,7 +93,7 @@
     }
     .drag-handle:active { cursor: grabbing; }
 
-    /* Row drag handle (ì¢ëª© ìì ë³ê²½) */
+    /* Row drag handle (종목 순서 변경) */
     .row-drag-handle {
       color: var(--dim); cursor: grab; font-size: 13px; text-align: center;
       width: 20px; padding: 0 2px; opacity: 0.35; transition: opacity .15s; user-select: none;
@@ -134,7 +134,7 @@
     .collapse-icon { font-size: 12px; transition: transform .2s; }
     .is-collapsed .collapse-icon { transform: rotate(-90deg); }
 
-    /* ââ TABLE ââ */
+    /* ── TABLE ── */
     .sector-body { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
     th {
@@ -156,7 +156,7 @@
     .mkt-KQ  { background: #1a3547; color: #79c0ff; }
     .mkt-US  { background: #2b1f40; color: var(--purple); }
 
-    /* ì¸ë¼ì¸ ë§ì¼ ëë¡­ë¤ì´ */
+    /* 인라인 마켓 드롭다운 */
     .mkt-inline-select {
       font-size: 10px; font-weight: 600; padding: 2px 4px;
       border-radius: 4px; border: none; cursor: pointer;
@@ -176,8 +176,8 @@
 
     /* RSI badge */
     .rsi-cell { font-weight: 700; font-size: 12px; white-space: nowrap; }
-    .rsi-hot  { color: #f85149; }   /* >70 ê³¼ë§¤ì */
-    .rsi-cold { color: #3fb950; }   /* <30 ê³¼ë§¤ë */
+    .rsi-hot  { color: #f85149; }   /* >70 과매수 */
+    .rsi-cold { color: #3fb950; }   /* <30 과매도 */
     .rsi-mid  { color: var(--text); }
 
     /* Growth estimate cells */
@@ -193,7 +193,7 @@
     .sma-below { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd);   }
     .sma-none  { background: var(--surface2); color: var(--dim);   border: 1px solid var(--border2);  }
 
-    /* Sparkling */
+    /* Sparkline */
     .spark-cell svg { display: block; }
 
     /* Editable notes */
@@ -202,7 +202,7 @@
       color: var(--muted); line-height: 1.5; cursor: pointer; border-radius: 3px; padding: 2px 4px;
     }
     .note-cell:hover { background: var(--surface2); color: var(--text); }
-    .note-cell.empty::before { content: 'í´ë¦­íì¬ ìë ¥'; color: var(--dim); font-style: italic; }
+    .note-cell.empty::before { content: '클릭하여 입력'; color: var(--dim); font-style: italic; }
     .note-cell textarea {
       width: 180px; min-height: 56px;
       background: var(--bg); border: 1px solid var(--blue);
@@ -262,64 +262,64 @@
 <div class="header">
   <div class="header-left">
     <div>
-      <div class="header-title">ð ê´ì¬ì¢ëª© ëìë³´ë</div>
+      <div class="header-title">📊 관심종목 대시보드</div>
     </div>
-    <div class="header-sub" id="last-updated">ìë°ì´í¸: -</div>
+    <div class="header-sub" id="last-updated">업데이트: -</div>
   </div>
   <div class="header-right">
     <span id="refresh-status" style="font-size:11px;color:var(--muted)"></span>
-    <button class="btn btn-ghost" onclick="refreshAll()">ð ì ì²´ ìë¡ê³ ì¹¨</button>
-    <button class="btn btn-green" onclick="addSector()">ï¼ ì¹í° ì¶ê°</button>
+    <button class="btn btn-ghost" onclick="refreshAll()">🔄 전체 새로고침</button>
+    <button class="btn btn-green" onclick="addSector()">＋ 섹터 추가</button>
   </div>
 </div>
 
 <!-- MAIN -->
 <div class="main">
   <div id="sectors-container"></div>
-  <button class="add-sector-btn" onclick="addSector()">ï¼ ì ì¹í° ì¶ê°</button>
+  <button class="add-sector-btn" onclick="addSector()">＋ 새 섹터 추가</button>
 </div>
 
 <script>
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  STATE
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 let db = { sectors: [] };
 const PROXIES = [
-  // 1ìì: Netlify í¨ì (GitHub + Netlify ë°°í¬ ì ìë, ê°ì¥ ìì ì )
+  // 1순위: Netlify 함수 (GitHub + Netlify 배포 시 작동, 가장 안정적)
   url => `/.netlify/functions/proxy?url=${encodeURIComponent(url)}`,
-  // 2ìì: ë¬´ë£ ê³µê° íë¡ì (ë°±ì)
+  // 2순위: 무료 공개 프록시 (백업)
   url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
 ];
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  STORAGE
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function save() { localStorage.setItem('wl_v2', JSON.stringify(db)); }
 
 function load() {
   const raw = localStorage.getItem('wl_v2');
   if (raw) { db = JSON.parse(raw); return; }
-  // ìí ë°ì´í°
+  // 샘플 데이터
   db = { sectors: [
-    { id: uid(), name: 'ì¤íì´ë¸ì½ì¸ / í¬ë¦½í ', collapsed: false, stocks: [
-      { id: uid(), code: '234340', market: 'KR', name: 'í¥í íì´ë¸ì', features: 'ê¸ë¡ë² ê²°ì ë§, ìí´ íí¸ëì¬', issues: 'ëì§í¸ìì° ìë² ì§ì°ì¼ë¡ íë½', pd: null },
-      { id: uid(), code: '124500', market: 'KR', name: 'ìì´í°ì¼ê¸ë¡ë²', features: 'ê¸ ê¸°ë° ì¤íì´ë¸ì½ì¸ (ê¸ê°ê²© ìí¥)', issues: 'ê¸ê°ê²© íë½ì¼ë¡ ìµê·¼ ì£¼ê° íë½', pd: null },
-      { id: uid(), code: '041190', market: 'KR', name: 'ì°ë¦¬ê¸°ì í¬ì', features: 'ëëë¬´ ì§ë¶ 7% ë³´ì ', issues: '', pd: null },
-      { id: uid(), code: '003530', market: 'KR', name: 'ííí¬ìì¦ê¶', features: 'ëëë¬´ ì§ë¶ 6% ë³´ì ', issues: '', pd: null },
+    { id: uid(), name: '스테이블코인 / 크립토', collapsed: false, stocks: [
+      { id: uid(), code: '234340', market: 'KR', name: '헥토파이낸셜', features: '글로벌 결제망, 서클 파트너사', issues: '디지털자산 입법 지연으로 하락', pd: null },
+      { id: uid(), code: '124500', market: 'KR', name: '아이티센글로벌', features: '금 기반 스테이블코인 (금가격 영향)', issues: '금가격 하락으로 최근 주가 하락', pd: null },
+      { id: uid(), code: '041190', market: 'KR', name: '우리기술투자', features: '두나무 지분 7% 보유', issues: '', pd: null },
+      { id: uid(), code: '003530', market: 'KR', name: '한화투자증권', features: '두나무 지분 6% 보유', issues: '', pd: null },
     ]},
-    { id: uid(), name: 'ë¯¸êµ­ ë¹íí¬', collapsed: false, stocks: [
-      { id: uid(), code: 'AAPL', market: 'US', name: 'Apple', features: 'ìì´í° / ìë¹ì¤ ë§¤ì¶ ì±ì¥', issues: '', pd: null },
-      { id: uid(), code: 'NVDA', market: 'US', name: 'NVIDIA', features: 'AI ë°ëì²´ 1ì', issues: '', pd: null },
+    { id: uid(), name: '미국 빅테크', collapsed: false, stocks: [
+      { id: uid(), code: 'AAPL', market: 'US', name: 'Apple', features: '아이폰 / 서비스 매출 성장', issues: '', pd: null },
+      { id: uid(), code: 'NVDA', market: 'US', name: 'NVIDIA', features: 'AI 반도체 1위', issues: '', pd: null },
     ]},
   ]};
   save();
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  UTILS
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function uid() { return '_' + Math.random().toString(36).slice(2, 9); }
 
 function ticker(code, market) {
@@ -336,7 +336,7 @@ function fmtPct(v) {
 
 function fmtPrice(v, cur) {
   if (v == null) return '-';
-  if (cur === 'KRW') return Math.round(v).toLocaleString('ko-KR') + 'ì';
+  if (cur === 'KRW') return Math.round(v).toLocaleString('ko-KR') + '원';
   return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -354,9 +354,9 @@ function toast(msg, ok = true) {
   setTimeout(() => el.remove(), 2800);
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  SPARKLINE SVG
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function sparkSVG(prices, w = 100, h = 36) {
   const valid = (prices || []).filter(p => p != null && !isNaN(p));
   if (valid.length < 2) return `<svg width="${w}" height="${h}"><text x="6" y="20" fill="#484f58" font-size="10">-</text></svg>`;
@@ -376,9 +376,9 @@ function sparkSVG(prices, w = 100, h = 36) {
   </svg>`;
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  RSI CALCULATION
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function calcRSI(closes, period = 14) {
   if (!closes || closes.length < period + 1) return null;
   const changes = closes.slice(1).map((c, i) => c - closes[i]);
@@ -394,13 +394,13 @@ function calcRSI(closes, period = 14) {
   return 100 - (100 / (1 + avgGain / avgLoss));
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  YAHOO FINANCE FETCH
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 async function fetchYahoo(tk) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${tk}?interval=1d&range=1y&includePrePost=false`;
 
-  // 1) ì§ì  í¸ì¶ ìë
+  // 1) 직접 호출 시도
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
@@ -409,7 +409,7 @@ async function fetchYahoo(tk) {
     }
   } catch {}
 
-  // 2) íë¡ì ìì°¨ ìë
+  // 2) 프록시 순차 시도
   for (const proxyFn of PROXIES) {
     try {
       const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(8000) });
@@ -420,7 +420,7 @@ async function fetchYahoo(tk) {
     } catch {}
   }
 
-  throw new Error(`${tk} â ë°ì´í°ë¥¼ ê°ì ¸ì¬ ì ììµëë¤. ì ì í ë¤ì ìëí´ ì£¼ì¸ì.`);
+  throw new Error(`${tk} — 데이터를 가져올 수 없습니다. 잠시 후 다시 시도해 주세요.`);
 }
 
 async function fetchGrowthData(tk) {
@@ -445,8 +445,8 @@ async function fetchGrowthData(tk) {
   const getG = (period) => {
     const t = trends.find(x => x.period === period);
     return {
-      rev: t?.revenueEstimate?.growth?.raw ?? null,  // Revenue YoY ì±ì¥ë¥ 
-      eps: t?.earningsEstimate?.growth?.raw ?? null, // EPS YoY ì±ì¥ë¥ 
+      rev: t?.revenueEstimate?.growth?.raw ?? null,  // Revenue YoY 성장률
+      eps: t?.earningsEstimate?.growth?.raw ?? null, // EPS YoY 성장률
     };
   };
   return { nextQ: getG('+1q'), curY: getG('0y') };
@@ -456,27 +456,27 @@ async function loadStockData(code, market) {
   const tk = ticker(code, market);
   const json = await fetchYahoo(tk);
   const result = json?.chart?.result?.[0];
-  if (!result) throw new Error('ë°ì´í° ìì');
+  if (!result) throw new Error('데이터 없음');
 
   const meta = result.meta;
   const timestamps = result.timestamp || [];
   const closes = result.indicators?.quote?.[0]?.close || [];
-  // ìì ì£¼ê°(adjclose) ì°ì  ì¬ì© â ì£¼ìë¶í /ë°°ë¹ ì´ë²¤í¸ ë°ì ììë ì¼ê´ë ì¤ì¼ì¼ ì ì§
+  // 수정주가(adjclose) 우선 사용 — 주식분할/배당 이벤트 발생 시에도 일관된 스케일 유지
   const adjCloses = result.indicators?.adjclose?.[0]?.adjclose || [];
   const priceArr = adjCloses.length > 0 ? adjCloses : closes;
 
-  // ì í¨í (íìì¤í¬í, ì¢ê°) ìë§ ì¶ì¶
+  // 유효한 (타임스탬프, 종가) 쌍만 추출
   const validPairs = timestamps.map((t, i) => [t, priceArr[i]]).filter(([, c]) => c != null && !isNaN(c));
   const validCloses = validPairs.map(([, c]) => c);
-  if (validCloses.length === 0) throw new Error('ê°ê²© ë°ì´í° ìì');
+  if (validCloses.length === 0) throw new Error('가격 데이터 없음');
 
   const n = validCloses.length;
   const cur = meta.regularMarketPrice ?? validCloses[n - 1];
   const currency = meta.currency ?? 'USD';
 
-  // ââ 1D% ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  // Yahoo ì ê³µê° ì°ì  ì¬ì©. ìì¼ë©´ ì­ì¬ ì¢ê° ë§ì§ë§ 2ê°ë¡ ê³ì°
-  // (chartPreviousCloseë ê¸°ìì´ë²¤í¸ ì ì¤ì¼ì¼ ë¶ì¼ì¹ ë°ì â ì¬ì© ê¸ì§)
+  // ── 1D% ──────────────────────────────────────────────────────────────
+  // Yahoo 제공값 우선 사용. 없으면 역사 종가 마지막 2개로 계산
+  // (chartPreviousClose는 기업이벤트 시 스케일 불일치 발생 → 사용 금지)
   let d1pct;
   const metaPct = meta.regularMarketChangePercent;
   if (metaPct != null && !isNaN(metaPct)) {
@@ -487,11 +487,11 @@ async function loadStockData(code, market) {
     d1pct = 0;
   }
 
-  // ââ 1M% (â22 ê±°ëì¼ ì  ëë¹) âââââââââââââââââââââââââââââââââââââââââ
+  // ── 1M% (≈22 거래일 전 대비) ─────────────────────────────────────────
   const price1M = validCloses[Math.max(0, n - 22)];
   const d1Mpct = ((validCloses[n - 1] - price1M) / price1M) * 100;
 
-  // ââ YTD% (ì°ì´ ì²« ê±°ëì¼ ëë¹) ââââââââââââââââââââââââââââââââââââââ
+  // ── YTD% (연초 첫 거래일 대비) ──────────────────────────────────────
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime() / 1000;
   let ytdPrice = validCloses[0];
   for (const [t, c] of validPairs) {
@@ -499,30 +499,30 @@ async function loadStockData(code, market) {
   }
   const ytdPct = ((validCloses[n - 1] - ytdPrice) / ytdPrice) * 100;
 
-  // ââ SMA50 âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── SMA50 ─────────────────────────────────────────────────────────────
   const last50 = validCloses.slice(-50);
   const sma50 = last50.length >= 10 ? last50.reduce((a, b) => a + b, 0) / last50.length : null;
-  // adjclose ì¤ì¼ì¼ë¡ ë¹êµ
+  // adjclose 스케일로 비교
   const aboveSMA50 = sma50 != null ? validCloses[n - 1] > sma50 : null;
 
-  // ââ 30ì¼ ì¤íì´í¬ âââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── 30일 스파이크 ─────────────────────────────────────────────────────
   const spark = validCloses.slice(-30);
 
-  // ââ RSI(14) âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── RSI(14) ───────────────────────────────────────────────────────────
   const rsi = calcRSI(validCloses);
 
   const stockName = meta.longName || meta.shortName || null;
 
-  // ââ ì±ì¥ë¥  ì¶ì ì¹ (Yahoo earningsTrend) ââââââââââââââââââââââââââââââ
+  // ── 성장률 추정치 (Yahoo earningsTrend) ──────────────────────────────
   let growth = { nextQ: { rev: null, eps: null }, curY: { rev: null, eps: null } };
   try { growth = await fetchGrowthData(tk); } catch {}
 
   return { cur, currency, d1pct, d1Mpct, ytdPct, aboveSMA50, sma50, spark, rsi, growth, stockName, updatedAt: new Date().toISOString() };
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  RENDER
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function render() {
   const container = document.getElementById('sectors-container');
   container.innerHTML = '';
@@ -541,17 +541,17 @@ function buildPanel(sec) {
   head.className = 'sector-head' + (sec.collapsed ? ' is-collapsed' : '');
 
   head.innerHTML = `
-    <span class="drag-handle" title="ëëê·¸íì¬ ìì ë³ê²½">â ¿</span>
+    <span class="drag-handle" title="드래그하여 순서 변경">⠿</span>
     <div class="sector-name-wrap">
-      <span class="sector-name-text" ondblclick="renameSector('${sec.id}', this)" title="ëë¸í´ë¦­íì¬ ì´ë¦ ë³ê²½">${sec.name}</span>
+      <span class="sector-name-text" ondblclick="renameSector('${sec.id}', this)" title="더블클릭하여 이름 변경">${sec.name}</span>
     </div>
-    <span class="badge">${sec.stocks.length}ì¢ëª©</span>
+    <span class="badge">${sec.stocks.length}종목</span>
     <div class="sector-actions">
-      <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px" onclick="toggleAddForm('${sec.id}')">ï¼ ì¢ëª©</button>
-      <button class="btn-icon" onclick="refreshSector('${sec.id}')" title="ì¹í° ìë¡ê³ ì¹¨">ð</button>
-      <button class="btn-icon" onclick="deleteSector('${sec.id}')" title="ì¹í° ì­ì " style="color:var(--red)">ð</button>
-      <button class="btn-icon" onclick="toggleCollapse('${sec.id}')" title="ì ê¸°/í¼ì¹ê¸°">
-        <span class="collapse-icon">â¾</span>
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px" onclick="toggleAddForm('${sec.id}')">＋ 종목</button>
+      <button class="btn-icon" onclick="refreshSector('${sec.id}')" title="섹터 새로고침">🔄</button>
+      <button class="btn-icon" onclick="deleteSector('${sec.id}')" title="섹터 삭제" style="color:var(--red)">🗑</button>
+      <button class="btn-icon" onclick="toggleCollapse('${sec.id}')" title="접기/펼치기">
+        <span class="collapse-icon">▾</span>
       </button>
     </div>`;
 
@@ -566,22 +566,22 @@ function buildPanel(sec) {
     const table = document.createElement('table');
     table.innerHTML = `<thead><tr>
       <th style="width:20px;padding:4px"></th>
-      <th>ì½ë</th>
-      <th>ë§ì¼</th>
-      <th>ì¢ëª©ëª</th>
-      <th>íì¬ê°</th>
+      <th>코드</th>
+      <th>마켓</th>
+      <th>종목명</th>
+      <th>현재가</th>
       <th>1D %</th>
       <th>1M %</th>
       <th>YTD %</th>
       <th>MA50</th>
-      <th title="RSI(14) â 70â ê³¼ë§¤ì Â· 30â ê³¼ë§¤ë">RSI</th>
-      <th style="min-width:108px">30ì¼ ì¤íì´í¬</th>
-      <th title="ë¤ì ë¶ê¸° ë§¤ì¶ YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ë¤ìQ<br>ë§¤ì¶%</th>
-      <th title="ë¤ì ë¶ê¸° EPS YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ë¤ìQ<br>EPS%</th>
-      <th title="ì¬í´ ë§¤ì¶ YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ì¬í´<br>ë§¤ì¶%</th>
-      <th title="ì¬í´ EPS YoY ì±ì¥ë¥  ì¶ì ì¹" style="min-width:68px">ì¬í´<br>EPS%</th>
-      <th>í¹ì§</th>
-      <th>ì£¼ìì´ì</th>
+      <th title="RSI(14) — 70↑ 과매수 · 30↓ 과매도">RSI</th>
+      <th style="min-width:108px">30일 스파이크</th>
+      <th title="다음 분기 매출 YoY 성장률 추정치" style="min-width:68px">다음Q<br>매출%</th>
+      <th title="다음 분기 EPS YoY 성장률 추정치" style="min-width:68px">다음Q<br>EPS%</th>
+      <th title="올해 매출 YoY 성장률 추정치" style="min-width:68px">올해<br>매출%</th>
+      <th title="올해 EPS YoY 성장률 추정치" style="min-width:68px">올해<br>EPS%</th>
+      <th>특징</th>
+      <th>주요이슈</th>
       <th></th>
     </tr></thead>`;
 
@@ -589,7 +589,7 @@ function buildPanel(sec) {
     tbody.id = 'tbody-' + sec.id;
 
     if (sec.stocks.length === 0) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="18">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="18">종목을 추가해 주세요</td></tr>`;
     } else {
       sec.stocks.forEach(st => tbody.appendChild(buildRow(sec.id, st)));
       initSortableRows(tbody, sec);
@@ -607,14 +607,14 @@ function buildPanel(sec) {
     addRow.style.background = 'var(--bg)';
     addRow.innerHTML = `
       <div class="add-form">
-        <input class="add-input" id="code-${sec.id}" placeholder="ì¢ëª©ì½ë (ì: 005930, AAPL)" style="width:220px"/>
+        <input class="add-input" id="code-${sec.id}" placeholder="종목코드 (예: 005930, AAPL)" style="width:220px"/>
         <select class="add-select" id="mkt-${sec.id}">
-          <option value="KR">ð°ð· KR (ì½ì¤í¼)</option>
-          <option value="KQ">ð°ð· KQ (ì½ì¤ë¥)</option>
-          <option value="US">ðºð¸ US (ë¯¸êµ­)</option>
+          <option value="KR">🇰🇷 KR (코스피)</option>
+          <option value="KQ">🇰🇷 KQ (코스닥)</option>
+          <option value="US">🇺🇸 US (미국)</option>
         </select>
-        <button class="btn btn-green" onclick="addStock('${sec.id}')">ì¶ê°</button>
-        <button class="btn btn-ghost" onclick="toggleAddForm('${sec.id}')">ì·¨ì</button>
+        <button class="btn btn-green" onclick="addStock('${sec.id}')">추가</button>
+        <button class="btn btn-ghost" onclick="toggleAddForm('${sec.id}')">취소</button>
         <span id="add-status-${sec.id}" style="font-size:11px;color:var(--muted)"></span>
       </div>`;
     body.appendChild(addRow);
@@ -639,8 +639,8 @@ function buildRow(sectorId, st) {
   let smaBadge = `<span class="sma-badge sma-none">-</span>`;
   if (pd && pd.aboveSMA50 !== null) {
     smaBadge = pd.aboveSMA50
-      ? `<span class="sma-badge sma-above">â² MA50 ì</span>`
-      : `<span class="sma-badge sma-below">â¼ MA50 ìë</span>`;
+      ? `<span class="sma-badge sma-above">▲ MA50 위</span>`
+      : `<span class="sma-badge sma-below">▼ MA50 아래</span>`;
   }
 
   // RSI
@@ -666,16 +666,16 @@ function buildRow(sectorId, st) {
 
   const spark = pd && pd.spark ? sparkSVG(pd.spark) : sparkSVG(null);
   tr.innerHTML = `
-    <td class="row-drag-handle" title="ëëê·¸ë¡ ìì ë³ê²½">â ¿</td>
-    <td class="code-cell editable-hint" ondblclick="editStockCode(this,'${sectorId}','${st.id}')" title="ëë¸í´ë¦­ì¼ë¡ ì½ë ìì ">${st.code}</td>
+    <td class="row-drag-handle" title="드래그로 순서 변경">⠿</td>
+    <td class="code-cell editable-hint" ondblclick="editStockCode(this,'${sectorId}','${st.id}')" title="더블클릭으로 코드 수정">${st.code}</td>
     <td style="white-space:nowrap">
-      <select class="mkt-inline-select mkt-${st.market}" onchange="changeMarket('${sectorId}','${st.id}',this.value)" title="ë§ì¼ ë³ê²½ í ìë ìë¡ê³ ì¹¨">
-        <option value="KR" ${st.market==='KR'?'selected':''}>ð°ð· KR</option>
-        <option value="KQ" ${st.market==='KQ'?'selected':''}>ð°ð· KQ</option>
-        <option value="US" ${st.market==='US'?'selected':''}>ðºð¸ US</option>
+      <select class="mkt-inline-select mkt-${st.market}" onchange="changeMarket('${sectorId}','${st.id}',this.value)" title="마켓 변경 후 자동 새로고침">
+        <option value="KR" ${st.market==='KR'?'selected':''}>🇰🇷 KR</option>
+        <option value="KQ" ${st.market==='KQ'?'selected':''}>🇰🇷 KQ</option>
+        <option value="US" ${st.market==='US'?'selected':''}>🇺🇸 US</option>
       </select>
     </td>
-    <td class="name-cell editable-hint" ondblclick="editStockField(this,'${sectorId}','${st.id}','name')" title="ëë¸í´ë¦­ì¼ë¡ ì¢ëª©ëª ìì ">${st.name}</td>
+    <td class="name-cell editable-hint" ondblclick="editStockField(this,'${sectorId}','${st.id}','name')" title="더블클릭으로 종목명 수정">${st.name}</td>
     <td class="price-cell">${priceTxt}</td>
     <td class="pct-cell ${d1.cls}">${d1.text}</td>
     <td class="pct-cell ${d1M.cls}">${d1M.text}</td>
@@ -693,16 +693,16 @@ function buildRow(sectorId, st) {
           onclick="editNote(this, '${sectorId}', '${st.id}', 'issues')">${st.issues || ''}</div></td>
     <td>
       <span style="display:flex;gap:3px;align-items:center">
-        <button class="btn-icon" title="ìë¡ê³ ì¹¨" onclick="refreshStock('${sectorId}','${st.id}')">ð</button>
-        <button class="btn-icon" title="ì­ì " style="color:var(--red)" onclick="deleteStock('${sectorId}','${st.id}')">â</button>
+        <button class="btn-icon" title="새로고침" onclick="refreshStock('${sectorId}','${st.id}')">🔄</button>
+        <button class="btn-icon" title="삭제" style="color:var(--red)" onclick="deleteStock('${sectorId}','${st.id}')">✕</button>
       </span>
     </td>`;
   return tr;
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  INLINE NOTE EDIT
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function editNote(el, sectorId, stockId, field) {
   if (el.querySelector('textarea')) return;
   const sec = db.sectors.find(s => s.id === sectorId);
@@ -725,9 +725,9 @@ function editNote(el, sectorId, stockId, field) {
   ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur(); });
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  REFRESH
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 async function refreshStock(sectorId, stockId) {
   const sec = db.sectors.find(s => s.id === sectorId);
   const st = sec?.stocks.find(s => s.id === stockId);
@@ -736,7 +736,7 @@ async function refreshStock(sectorId, stockId) {
   const row = document.getElementById('row-' + stockId);
   if (row) {
     const cells = row.querySelectorAll('td');
-    cells[2].innerHTML = '<span class="spin">â³</span>';
+    cells[2].innerHTML = '<span class="spin">⟳</span>';
   }
 
   try {
@@ -746,27 +746,27 @@ async function refreshStock(sectorId, stockId) {
     if (row) row.replaceWith(newRow);
     updateLastUpdated();
   } catch (e) {
-    if (row) row.querySelectorAll('td')[2].textContent = 'ì¤ë¥';
-    toast('ë°ì´í° ë¡ë ì¤í¨: ' + st.code, false);
+    if (row) row.querySelectorAll('td')[2].textContent = '오류';
+    toast('데이터 로드 실패: ' + st.code, false);
   }
 }
 
 async function refreshSector(sectorId) {
   const sec = db.sectors.find(s => s.id === sectorId);
   if (!sec) return;
-  setStatus(`${sec.name} ìë°ì´í¸ ì¤...`);
+  setStatus(`${sec.name} 업데이트 중...`);
   for (const st of sec.stocks) await refreshStock(sectorId, st.id);
   setStatus('');
-  toast(`${sec.name} ìë°ì´í¸ ìë£`);
+  toast(`${sec.name} 업데이트 완료`);
 }
 
 async function refreshAll() {
-  setStatus('ì ì²´ ìë°ì´í¸ ì¤...');
+  setStatus('전체 업데이트 중...');
   for (const sec of db.sectors) {
     for (const st of sec.stocks) await refreshStock(sec.id, st.id);
   }
   setStatus('');
-  toast('ì ì²´ ìë°ì´í¸ ìë£');
+  toast('전체 업데이트 완료');
 }
 
 function setStatus(msg) {
@@ -780,25 +780,25 @@ function updateLastUpdated() {
       if (!latest || st.pd.updatedAt > latest) latest = st.pd.updatedAt;
     }
   }));
-  document.getElementById('last-updated').textContent = 'ìë°ì´í¸: ' + fmtTime(latest);
+  document.getElementById('last-updated').textContent = '업데이트: ' + fmtTime(latest);
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  ADD / DELETE
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function addSector() {
-  const name = prompt('ì¹í° ì´ë¦ì ìë ¥íì¸ì:');
+  const name = prompt('섹터 이름을 입력하세요:');
   if (!name?.trim()) return;
   const sec = { id: uid(), name: name.trim(), collapsed: false, stocks: [] };
   db.sectors.push(sec);
   save();
   render();
-  toast(`ì¹í° "${sec.name}" ì¶ê°ë¨`);
+  toast(`섹터 "${sec.name}" 추가됨`);
 }
 
 function deleteSector(sectorId) {
   const sec = db.sectors.find(s => s.id === sectorId);
-  if (!confirm(`"${sec?.name}" ì¹í°ë¥¼ ì­ì íìê² ìµëê¹?`)) return;
+  if (!confirm(`"${sec?.name}" 섹터를 삭제하시겠습니까?`)) return;
   db.sectors = db.sectors.filter(s => s.id !== sectorId);
   save(); render();
 }
@@ -819,11 +819,11 @@ async function addStock(sectorId) {
   const market = mktEl.value;
   if (!code) return;
 
-  statusEl.textContent = 'ð ë¡ë© ì¤... (ìµë 20ì´ ìì)';
+  statusEl.textContent = '🔄 로딩 중... (최대 20초 소요)';
   try {
     const pd = await loadStockData(code, market);
     const sec = db.sectors.find(s => s.id === sectorId);
-    // ì¢ëª©ëª: Yahooìì ë°ìì¨ ì´ë¦ ì°ì , ìì¼ë©´ ì½ëë¡ íì
+    // 종목명: Yahoo에서 받아온 이름 우선, 없으면 코드로 표시
     const name = pd.stockName || code.toUpperCase();
     const st = { id: uid(), code: code.toUpperCase(), market, name, features: '', issues: '', pd };
 
@@ -838,14 +838,14 @@ async function addStock(sectorId) {
     // update badge
     const panel = document.querySelector(`.sector-panel[data-id="${sectorId}"]`);
     const badge = panel?.querySelector('.badge');
-    if (badge) badge.textContent = sec.stocks.length + 'ì¢ëª©';
+    if (badge) badge.textContent = sec.stocks.length + '종목';
 
     codeEl.value = '';
     statusEl.textContent = '';
-    toast(`${st.name} ì¶ê°ë¨`);
+    toast(`${st.name} 추가됨`);
   } catch (e) {
-    statusEl.textContent = 'â ' + (e.message || 'ë¡ë ì¤í¨ â ì½ë/ìì¥ êµ¬ë¶ì íì¸íì¸ì');
-    toast('ì¶ê° ì¤í¨: ' + code, false);
+    statusEl.textContent = '❌ ' + (e.message || '로드 실패 — 코드/시장 구분을 확인하세요');
+    toast('추가 실패: ' + code, false);
   }
 }
 
@@ -854,9 +854,9 @@ function changeMarket(sectorId, stockId, newMarket) {
   const st  = sec?.stocks.find(s => s.id === stockId);
   if (!st || st.market === newMarket) return;
   st.market = newMarket;
-  st.pd = null;  // ì´ì  ê°ê²© ë°ì´í° ì´ê¸°í
+  st.pd = null;  // 이전 가격 데이터 초기화
   save();
-  // select ììë§ ìë°ì´í¸ (ì ì²´ re-render ëì )
+  // select 색상만 업데이트 (전체 re-render 대신)
   const sel = document.querySelector(`#row-${st.id} .mkt-inline-select`);
   if (sel) {
     sel.className = `mkt-inline-select mkt-${newMarket}`;
@@ -867,23 +867,23 @@ function changeMarket(sectorId, stockId, newMarket) {
 function deleteStock(sectorId, stockId) {
   const sec = db.sectors.find(s => s.id === sectorId);
   const st  = sec?.stocks.find(s => s.id === stockId);
-  if (!confirm(`"${st?.name}" ì¢ëª©ì ì­ì íìê² ìµëê¹?`)) return;
+  if (!confirm(`"${st?.name}" 종목을 삭제하시겠습니까?`)) return;
   sec.stocks = sec.stocks.filter(s => s.id !== stockId);
   save();
   const row = document.getElementById('row-' + stockId);
   row?.remove();
   const panel = document.querySelector(`.sector-panel[data-id="${sectorId}"]`);
   const badge = panel?.querySelector('.badge');
-  if (badge) badge.textContent = sec.stocks.length + 'ì¢ëª©';
+  if (badge) badge.textContent = sec.stocks.length + '종목';
   if (sec.stocks.length === 0) {
     const tbody = document.getElementById('tbody-' + sectorId);
-    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="18">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="18">종목을 추가해 주세요</td></tr>`;
   }
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  COLLAPSE / RENAME
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function toggleCollapse(sectorId) {
   const sec = db.sectors.find(s => s.id === sectorId);
   if (!sec) return;
@@ -908,9 +908,9 @@ function renameSector(sectorId, el) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = sec.name; input.blur(); } });
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
-//  INLINE STOCK FIELD EDIT (ì¢ëª©ëª, ì½ë ìì )
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
+//  INLINE STOCK FIELD EDIT (종목명, 코드 수정)
+// ═══════════════════════════════════════════
 function editStockField(el, sectorId, stockId, field) {
   if (el.querySelector('input')) return;
   const sec = db.sectors.find(s => s.id === sectorId);
@@ -972,9 +972,9 @@ function editStockCode(el, sectorId, stockId) {
   });
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
-//  ROW SORTABLE (ì¹í° ë´ ì¢ëª© ìì ë³ê²½)
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
+//  ROW SORTABLE (섹터 내 종목 순서 변경)
+// ═══════════════════════════════════════════
 function initSortableRows(tbody, sec) {
   Sortable.create(tbody, {
     animation: 150,
@@ -991,9 +991,9 @@ function initSortableRows(tbody, sec) {
   });
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  DRAG & DROP (SortableJS)
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 function initSortable(container) {
   Sortable.create(container, {
     animation: 180,
@@ -1008,9 +1008,9 @@ function initSortable(container) {
   });
 }
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  KEYBOARD SHORTCUT: Enter to add stock
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.classList.contains('add-input')) {
     const sectorId = e.target.id.replace('code-', '');
@@ -1018,9 +1018,9 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 //  INIT
-// âââââââââââââââââââââââââââââââââââââââââââ
+// ═══════════════════════════════════════════
 load();
 render();
 </script>
