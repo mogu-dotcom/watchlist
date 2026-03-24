@@ -515,7 +515,7 @@ async function loadStockData(code, market) {
   const spark = validCloses.slice(-30);
 
   // ── RSI(14) ───────────────────────────────────────────────────────────
-  const rsi = calcRSI"validCloses);
+  const rsi = calcRSI(validCloses);
 
   const stockName = meta.longName || meta.shortName || null;
 
