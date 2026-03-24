@@ -474,21 +474,31 @@ async function loadStockData(code, market) {
   const cur = meta.regularMarketPrice ?? validCloses[n - 1];
   const currency = meta.currency ?? 'USD';
 
-  // 우선순위 1: (regularMarketPrice - previousClose) / previousClose
-  //   → 미장 휴장/프리마켓 시 regularMarketChangePercent=0 오류 방지
-  // 우선순위 2: Yahoo regularMarketChangePercent (0이 아닐 때만 사용)
-  // 우선순위 3: adjclose 역사 마지막 2일 계산 (최후 fallback)
+    // ── 1D% (전일 종가 기준) ──────────────────────────────────────
+  // Yahoo v8 range=5d 는 장중에 오늘 데이터를 중복 포함 (6개 행) →
+  // validCloses[n-2] == validCloses[n-1] 이 되어 0% 오류 발생.
+  // 타임스탬프 기준으로 날짜별 그룹핑 후 전일(마지막-1 날짜) 종가를 추출.
+  const _dateMap = {};
+  for (const [t, c] of validPairs) {
+    const dk = new Date(t * 1000).toISOString().slice(0, 10); // UTC YYYY-MM-DD
+    _dateMap[dk] = c; // 같은 날짜면 마지막(최신) 값으로 덮어쓰기
+  }
+  const _sortedDates  = Object.keys(_dateMap).sort();
+  const prevDayClose  = _sortedDates.length > 1
+    ? _dateMap[_sortedDates[_sortedDates.length - 2]] : null;
+
   let d1pct;
   const metaPct   = meta.regularMarketChangePercent;
-  const prevClose = meta.previousClose;          // 실제 전일 종가 (비조정)
-  const curPrice  = meta.regularMarketPrice;     // 현재가 (비조정)
+  const prevClose = meta.previousClose;          // 실제 전일 종가 (일부 거래소 제공)
+  const curPrice  = meta.regularMarketPrice;     // 현재ga (비조정)
   if (prevClose && curPrice && prevClose > 0) {
-    // previousClose 우선 — 미장 휴장 중 regularMarketChangePercent=0 방지
+    // meta.previousClose 우선 (KRX 등 일부 거래소에서 제공)
     d1pct = ((curPrice - prevClose) / prevClose) * 100;
+  } else if (prevDayClose && curPrice && prevDayClose > 0) {
+    // 날짜 그룹핑으로 추출한 전일 종가 (Yahoo US 주식 — previousClose 미제공 시)
+    d1pct = ((curPrice - prevDayClose) / prevDayClose) * 100;
   } else if (metaPct != null && !isNaN(metaPct) && metaPct !== 0) {
     d1pct = metaPct;
-  } else if (n >= 2 && validCloses[n - 2]) {
-    d1pct = ((validCloses[n - 1] - validCloses[n - 2]) / validCloses[n - 2]) * 100;
   } else {
     d1pct = 0;
   }
