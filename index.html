@@ -384,7 +384,7 @@ async function loadStockData(code, market) {
   const currency = meta.currency ?? 'USD';
 
   // 1D%
-  const d1pct = meta.regularMarketChangePercent ?? ((cur - (meta.chartPreviousClose ?? validCloses[validCloses.length - 2] ?? cur)) / (meta.chartPreviousClose ?? cur)) * 100;
+  const d1pct = meta.regularMarketChangePercent ?? (validCloses.length >= 2 && validCloses[validCloses.length-2] ? ((validCloses[validCloses.length-1] - validCloses[validCloses.length-2]) / validCloses[validCloses.length-2]) * 100 : 0);
 
   // 1M% (≈22 trading days)
   const idx1M = Math.max(0, validCloses.length - 22);
