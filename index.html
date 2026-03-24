@@ -474,13 +474,19 @@ async function loadStockData(code, market) {
   const cur = meta.regularMarketPrice ?? validCloses[n - 1];
   const currency = meta.currency ?? 'USD';
 
-  // ── 1D% ──────────────────────────────────────────────────────────────
-  // Yahoo 제공값 우선 사용. 없으면 역사 종가 마지막 2개로 계산
-  // (chartPreviousClose는 기업이벤트 시 스케일 불일치 발생 → 사용 금지)
+  // ── 1D% (전일 종가 기준) ──────────────────────────────────────────────
+  // 우선순위 1: Yahoo regularMarketChangePercent (전일 종가 → 현재가, 미장 포함)
+  // 우선순위 2: (regularMarketPrice - previousClose) / previousClose  ← 미장 proxy 누락 대비
+  // 우선순위 3: adjclose 역사 마지막 2일 계산 (최후 fallback)
   let d1pct;
-  const metaPct = meta.regularMarketChangePercent;
+  const metaPct   = meta.regularMarketChangePercent;
+  const prevClose = meta.previousClose;          // 실제 전일 종가 (비조정)
+  const curPrice  = meta.regularMarketPrice;     // 현재가 (비조정)
   if (metaPct != null && !isNaN(metaPct)) {
     d1pct = metaPct;
+  } else if (prevClose && curPrice) {
+    // previousClose 기반 계산 — 미장 주식에서 proxy가 %값 누락 시 보정
+    d1pct = ((curPrice - prevClose) / prevClose) * 100;
   } else if (n >= 2 && validCloses[n - 2]) {
     d1pct = ((validCloses[n - 1] - validCloses[n - 2]) / validCloses[n - 2]) * 100;
   } else {
@@ -509,7 +515,7 @@ async function loadStockData(code, market) {
   const spark = validCloses.slice(-30);
 
   // ── RSI(14) ───────────────────────────────────────────────────────────
-  const rsi = calcRSI(validCloses);
+  const rsi = calcRSI"validCloses);
 
   const stockName = meta.longName || meta.shortName || null;
 
@@ -603,7 +609,7 @@ function buildPanel(sec) {
     addRow.id = 'addform-' + sec.id;
     addRow.style.display = 'none';
     addRow.style.padding = '10px 14px';
-    addRow.style.borderTop = '1px solid var(--border)';
+    addRow.style.borderTop = '1px solid var(--border(';
     addRow.style.background = 'var(--bg)';
     addRow.innerHTML = `
       <div class="add-form">
@@ -614,7 +620,7 @@ function buildPanel(sec) {
           <option value="US">🇺🇸 US (미국)</option>
         </select>
         <button class="btn btn-green" onclick="addStock('${sec.id}')">추가</button>
-        <button class="btn btn-ghost" onclick="toggleAddForm('${sec.id}')">취소</button>
+        <button class="btn btn-ghost" onclick="toggleAddForm('${sec.id}')">취셬</button>
         <span id="add-status-${sec.id}" style="font-size:11px;color:var(--muted)"></span>
       </div>`;
     body.appendChild(addRow);
