@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+코드종목명<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
@@ -13,10 +13,33 @@
       --surface:  #161b22;
       --surface2: #1c2128;
       --border:   #30363d;
-      --border2:  #21262d;
-      --text:     #e6edf3;
-      --muted:    #8b949e;
-      --dim:      #484f58;
+function deleteStock(sectorId, stockId) {tr.innerHTML = `
+    .mkt-US  { background: #2b1f40; color: var(--purple); }
+function changeMarket(sectorId, stockId, newMarket) {
+    const sec = db.sectors.find(s => s.id === sectorId);
+    const st  = sec?.stocks.find(s => s.id === stockId);
+    if (!st || st.market === newMarket) return;
+    st.market = newMarket;
+    st.pd = null;
+    save();
+        const sel = document.querySelector(`#row-${st.id} .mkt-inline-select`);
+        if (sel) sel.className = `mkt-inline-select mkt-${newMarket}`;
+        refreshStock(sectorId, stockId);
+    }
+    
+    function deleteStock(sectorId, stockId) {.mkt-inline-select.mkt-KR { background:#1a3a5c; color:var(--blue); }
+          .mkt-inline-select.mkt-KQ { background:#1a3547; color:#79c0ff; }
+          .mkt-inline-select.mkt-US { background:#2b1f40; color:var(--purple); }
+          .mkt-inline-select option  { background:var(--surface2); color:var(--text); }<td style="white-space:nowrap">
+            <select class="mkt-inline-select mkt-${st.market}" onchange="changeMarket('${sectorId}','${st.id}',this.value)" title="마켓 변경 후 자동 새로고침">
+              <option value="KR" ${st.market==='KR'?'selected':''}>🇰🇷 KR</option>
+                                           <option value="KQ" ${st.market==='KQ'?'selected':''}>🇰🇷 KQ</option>
+                                                                        <option value="US" ${st.market==='US'?'selected':''}>🇺🇸 US</option>
+                                                                                                   </select>
+                                                                                                 </td>
+                                                                                                 <td class="name-cell">${st.name}</td><td class="code-cell">${st.code}</td>
+          <td class="name-cell">${st.name}<span class="mkt-badge mkt-${st.market}">${mktLabel}</span></td><th>코드</th>
+colspan="12">종목을 추가해 주세요            <th>종목명</th>--dim:      #484f58;
       --blue:     #58a6ff;
       --green:    #3fb950;
       --green-bg: #122a1a;
