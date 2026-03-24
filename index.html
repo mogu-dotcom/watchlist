@@ -93,6 +93,24 @@
     }
     .drag-handle:active { cursor: grabbing; }
 
+    /* Row drag handle (ì¢ëª© ìì ë³ê²½) */
+    .row-drag-handle {
+      color: var(--dim); cursor: grab; font-size: 13px; text-align: center;
+      width: 20px; padding: 0 2px; opacity: 0.35; transition: opacity .15s; user-select: none;
+    }
+    .row-drag-handle:hover { opacity: 1; }
+    .row-drag-handle:active { cursor: grabbing; }
+    tr:hover .row-drag-handle { opacity: 0.65; }
+
+    /* Editable cell hint */
+    .editable-hint { cursor: pointer; border-radius: 3px; }
+    .editable-hint:hover { background: var(--surface2); }
+    .inline-edit-input {
+      background: var(--bg); border: 1px solid var(--blue); color: var(--text);
+      padding: 2px 6px; border-radius: 4px; font-size: inherit; font-family: inherit;
+      outline: none;
+    }
+
     .sector-name-wrap { flex: 1; min-width: 0; }
     .sector-name-text {
       font-weight: 600; font-size: 14px; cursor: pointer;
@@ -175,7 +193,7 @@
     .sma-below { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd);   }
     .sma-none  { background: var(--surface2); color: var(--dim);   border: 1px solid var(--border2);  }
 
-    /* Sparkline */
+    /* Sparkling */
     .spark-cell svg { display: block; }
 
     /* Editable notes */
@@ -547,6 +565,7 @@ function buildPanel(sec) {
 
     const table = document.createElement('table');
     table.innerHTML = `<thead><tr>
+      <th style="width:20px;padding:4px"></th>
       <th>ì½ë</th>
       <th>ë§ì¼</th>
       <th>ì¢ëª©ëª</th>
@@ -570,9 +589,10 @@ function buildPanel(sec) {
     tbody.id = 'tbody-' + sec.id;
 
     if (sec.stocks.length === 0) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="17">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="18">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
     } else {
       sec.stocks.forEach(st => tbody.appendChild(buildRow(sec.id, st)));
+      initSortableRows(tbody, sec);
     }
 
     table.appendChild(tbody);
@@ -646,7 +666,8 @@ function buildRow(sectorId, st) {
 
   const spark = pd && pd.spark ? sparkSVG(pd.spark) : sparkSVG(null);
   tr.innerHTML = `
-    <td class="code-cell">${st.code}</td>
+    <td class="row-drag-handle" title="ëëê·¸ë¡ ìì ë³ê²½">â ¿</td>
+    <td class="code-cell editable-hint" ondblclick="editStockCode(this,'${sectorId}','${st.id}')" title="ëë¸í´ë¦­ì¼ë¡ ì½ë ìì ">${st.code}</td>
     <td style="white-space:nowrap">
       <select class="mkt-inline-select mkt-${st.market}" onchange="changeMarket('${sectorId}','${st.id}',this.value)" title="ë§ì¼ ë³ê²½ í ìë ìë¡ê³ ì¹¨">
         <option value="KR" ${st.market==='KR'?'selected':''}>ð°ð· KR</option>
@@ -654,7 +675,7 @@ function buildRow(sectorId, st) {
         <option value="US" ${st.market==='US'?'selected':''}>ðºð¸ US</option>
       </select>
     </td>
-    <td class="name-cell">${st.name}</td>
+    <td class="name-cell editable-hint" ondblclick="editStockField(this,'${sectorId}','${st.id}','name')" title="ëë¸í´ë¦­ì¼ë¡ ì¢ëª©ëª ìì ">${st.name}</td>
     <td class="price-cell">${priceTxt}</td>
     <td class="pct-cell ${d1.cls}">${d1.text}</td>
     <td class="pct-cell ${d1M.cls}">${d1M.text}</td>
@@ -856,7 +877,7 @@ function deleteStock(sectorId, stockId) {
   if (badge) badge.textContent = sec.stocks.length + 'ì¢ëª©';
   if (sec.stocks.length === 0) {
     const tbody = document.getElementById('tbody-' + sectorId);
-    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="17">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="18">ì¢ëª©ì ì¶ê°í´ ì£¼ì¸ì</td></tr>`;
   }
 }
 
@@ -885,6 +906,89 @@ function renameSector(sectorId, el) {
   };
   input.addEventListener('blur', commit);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = sec.name; input.blur(); } });
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââ
+//  INLINE STOCK FIELD EDIT (ì¢ëª©ëª, ì½ë ìì )
+// âââââââââââââââââââââââââââââââââââââââââââ
+function editStockField(el, sectorId, stockId, field) {
+  if (el.querySelector('input')) return;
+  const sec = db.sectors.find(s => s.id === sectorId);
+  const st = sec?.stocks.find(s => s.id === stockId);
+  if (!st) return;
+  const input = document.createElement('input');
+  input.className = 'inline-edit-input';
+  input.value = st[field] || '';
+  input.style.width = '130px';
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const val = input.value.trim();
+    if (val) { st[field] = val; save(); }
+    const row = document.getElementById('row-' + stockId);
+    if (row) row.replaceWith(buildRow(sectorId, st));
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = st[field] || ''; input.blur(); }
+  });
+}
+
+function editStockCode(el, sectorId, stockId) {
+  if (el.querySelector('input')) return;
+  const sec = db.sectors.find(s => s.id === sectorId);
+  const st = sec?.stocks.find(s => s.id === stockId);
+  if (!st) return;
+  const input = document.createElement('input');
+  input.className = 'inline-edit-input';
+  input.value = st.code;
+  input.style.cssText += 'width:80px;font-family:monospace;font-size:11px;color:var(--muted)';
+  el.innerHTML = '';
+  el.appendChild(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const val = input.value.trim().toUpperCase();
+    if (val && val !== st.code) {
+      st.code = val;
+      st.pd = null;
+      save();
+      const row = document.getElementById('row-' + stockId);
+      if (row) row.replaceWith(buildRow(sectorId, st));
+      refreshStock(sectorId, stockId);
+    } else {
+      const row = document.getElementById('row-' + stockId);
+      if (row) row.replaceWith(buildRow(sectorId, st));
+    }
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') {
+      const row = document.getElementById('row-' + stockId);
+      if (row) row.replaceWith(buildRow(sectorId, st));
+    }
+  });
+}
+
+// âââââââââââââââââââââââââââââââââââââââââââ
+//  ROW SORTABLE (ì¹í° ë´ ì¢ëª© ìì ë³ê²½)
+// âââââââââââââââââââââââââââââââââââââââââââ
+function initSortableRows(tbody, sec) {
+  Sortable.create(tbody, {
+    animation: 150,
+    handle: '.row-drag-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    filter: '.empty-row',
+    onEnd(evt) {
+      if (evt.oldIndex === evt.newIndex) return;
+      const moved = sec.stocks.splice(evt.oldIndex, 1)[0];
+      sec.stocks.splice(evt.newIndex, 0, moved);
+      save();
+    }
+  });
 }
 
 // âââââââââââââââââââââââââââââââââââââââââââ
