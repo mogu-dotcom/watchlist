@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관심종목 대시보드</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --surface2: #1c2128;
+      --border:   #30363d;
+      --border2:  #21262d;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --dim:      #484f58;
+      --blue:     #58a6ff;
+      --green:    #3fb950;
+      --green-bg: #122a1a;
+      --green-bd: #238636;
+      --red:      #f85149;
+      --red-bg:   #3b1219;
+      --red-bd:   #da3633;
+      --purple:   #d2a8ff;
+      --yellow:   #d29922;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky; top: 0; z-index: 200;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-title { font-size: 17px; font-weight: 700; color: var(--blue); letter-spacing: -0.3px; }
+    .header-sub { font-size: 11px; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border);
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .btn-green  { background: var(--green-bd); border-color: var(--green-bd); color: #fff; }
+    .btn-green:hover { background: #2ea043; }
+    .btn-ghost  { background: var(--surface2); color: var(--text); }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-icon   { padding: 4px 7px; background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 4px; font-size: 14px; }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── MAIN ── */
+    .main { padding: 18px 24px 40px; max-width: 1700px; margin: 0 auto; }
+
+    /* ── SECTOR PANEL ── */
+    .sector-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      transition: border-color .15s;
+    }
+    .sector-panel.sortable-ghost { opacity: .4; }
+    .sector-panel.sortable-chosen { border-color: var(--blue); }
+
+    .sector-head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+    .sector-head.is-collapsed { border-bottom: none; }
+
+    .drag-handle {
+      color: var(--dim); cursor: grab; font-size: 16px; padding: 0 2px; flex-shrink: 0;
+    }
+    .drag-handle:active { cursor: grabbing; }
+
+    .sector-name-wrap { flex: 1; min-width: 0; }
+    .sector-name-text {
+      font-weight: 600; font-size: 14px; cursor: pointer;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .sector-name-text:hover { color: var(--blue); }
+
+    .sector-name-input {
+      background: var(--bg); border: 1px solid var(--blue);
+      color: var(--text); padding: 2px 8px; border-radius: 4px;
+      font-size: 14px; font-weight: 600; width: 260px;
+    }
+    .sector-name-input:focus { outline: none; }
+
+    .badge {
+      font-size: 10px; padding: 1px 7px; border-radius: 10px;
+      background: var(--surface2); color: var(--muted); flex-shrink: 0;
+    }
+
+    .sector-actions { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
+    .collapse-icon { font-size: 12px; transition: transform .2s; }
+    .is-collapsed .collapse-icon { transform: rotate(-90deg); }
+
+    /* ── TABLE ── */
+    .sector-body { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: var(--surface2); color: var(--muted);
+      font-weight: 500; font-size: 11px; text-align: left;
+      padding: 7px 12px; border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td { padding: 9px 12px; border-bottom: 1px solid var(--border2); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--surface2); }
+
+    .code-cell  { font-family: monospace; font-size: 11px; color: var(--muted); }
+    .name-cell  { font-weight: 500; white-space: nowrap; }
+    .mkt-badge  {
+      display: inline-block; font-size: 9px; padding: 1px 5px; border-radius: 3px; margin-left: 5px;
+    }
+    .mkt-KR  { background: #1a3a5c; color: var(--blue); }
+    .mkt-KQ  { background: #1a3547; color: #79c0ff; }
+    .mkt-US  { background: #2b1f40; color: var(--purple); }
+
+    .price-cell { font-weight: 600; white-space: nowrap; }
+    .pct-cell   { font-weight: 600; white-space: nowrap; }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .neu { color: var(--muted); }
+
+    /* SMA badge */
+    .sma-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .sma-above { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+    .sma-below { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd);   }
+    .sma-none  { background: var(--surface2); color: var(--dim);   border: 1px solid var(--border2);  }
+
+    /* Sparkline */
+    .spark-cell svg { display: block; }
+
+    /* Editable notes */
+    .note-cell {
+      min-width: 130px; max-width: 200px; font-size: 11px;
+      color: var(--muted); line-height: 1.5; cursor: pointer; border-radius: 3px; padding: 2px 4px;
+    }
+    .note-cell:hover { background: var(--surface2); color: var(--text); }
+    .note-cell.empty::before { content: '클릭하여 입력'; color: var(--dim); font-style: italic; }
+    .note-cell textarea {
+      width: 180px; min-height: 56px;
+      background: var(--bg); border: 1px solid var(--blue);
+      color: var(--text); padding: 4px 8px; border-radius: 4px;
+      font-size: 11px; resize: vertical; font-family: inherit; line-height: 1.5;
+    }
+    .note-cell textarea:focus { outline: none; }
+
+    /* Status */
+    .status-icon { font-size: 13px; }
+    .spin { animation: spin .7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Add stock form row */
+    .add-row td {
+      background: var(--bg); padding: 8px 12px;
+      border-top: 1px solid var(--border);
+    }
+    .add-form {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .add-input, .add-select {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px;
+    }
+    .add-input:focus, .add-select:focus { outline: none; border-color: var(--blue); }
+
+    /* Add sector bottom */
+    .add-sector-btn {
+      width: 100%; margin-top: 8px; padding: 11px;
+      background: transparent; border: 2px dashed var(--border);
+      color: var(--muted); border-radius: 8px; cursor: pointer; font-size: 13px;
+      transition: all .15s;
+    }
+    .add-sector-btn:hover { border-color: var(--blue); color: var(--blue); background: #58a6ff0d; }
+
+    /* Empty sector */
+    .empty-row td { text-align: center; padding: 16px; color: var(--dim); font-size: 12px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 9px 16px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      z-index: 9999; animation: fadeUp .25s ease;
+    }
+    .toast-ok  { background: var(--green-bd); color: #fff; }
+    .toast-err { background: var(--red-bd);   color: #fff; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">📊 관심종목 대시보드</div>
+    </div>
+    <div class="header-sub" id="last-updated">업데이트: -</div>
+  </div>
+  <div class="header-right">
+    <span id="refresh-status" style="font-size:11px;color:var(--muted)"></span>
+    <button class="btn btn-ghost" onclick="refreshAll()">🔄 전체 새로고침</button>
+    <button class="btn btn-green" onclick="addSector()">＋ 섹터 추가</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div id="sectors-container"></div>
+  <button class="add-sector-btn" onclick="addSector()">＋ 새 섹터 추가</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let db = { sectors: [] };
+const PROXIES = [
+  // 1순위: Netlify 함수 (GitHub + Netlify 배포 시 작동, 가장 안정적)
+  url => `/.netlify/functions/proxy?url=${encodeURIComponent(url)}`,
+  // 2순위: 무료 공개 프록시 (백업)
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+];
+
+// ═══════════════════════════════════════════
+//  STORAGE
+// ═══════════════════════════════════════════
+function save() { localStorage.setItem('wl_v2', JSON.stringify(db)); }
+
+function load() {
+  const raw = localStorage.getItem('wl_v2');
+  if (raw) { db = JSON.parse(raw); return; }
+  // 샘플 데이터
+  db = { sectors: [
+    { id: uid(), name: '스테이블코인 / 크립토', collapsed: false, stocks: [
+      { id: uid(), code: '234340', market: 'KR', name: '헥토파이낸셜', features: '글로벌 결제망, 서클 파트너사', issues: '디지털자산 입법 지연으로 하락', pd: null },
+      { id: uid(), code: '124500', market: 'KR', name: '아이티센글로벌', features: '금 기반 스테이블코인 (금가격 영향)', issues: '금가격 하락으로 최근 주가 하락', pd: null },
+      { id: uid(), code: '041190', market: 'KR', name: '우리기술투자', features: '두나무 지분 7% 보유', issues: '', pd: null },
+      { id: uid(), code: '003530', market: 'KR', name: '한화투자증권', features: '두나무 지분 6% 보유', issues: '', pd: null },
+    ]},
+    { id: uid(), name: '미국 빅테크', collapsed: false, stocks: [
+      { id: uid(), code: 'AAPL', market: 'US', name: 'Apple', features: '아이폰 / 서비스 매출 성장', issues: '', pd: null },
+      { id: uid(), code: 'NVDA', market: 'US', name: 'NVIDIA', features: 'AI 반도체 1위', issues: '', pd: null },
+    ]},
+  ]};
+  save();
+}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function uid() { return '_' + Math.random().toString(36).slice(2, 9); }
+
+function ticker(code, market) {
+  if (market === 'US') return code.toUpperCase();
+  if (market === 'KQ') return code + '.KQ';
+  return code + '.KS'; // KR default
+}
+
+function fmtPct(v) {
+  if (v == null || isNaN(v)) return { text: '-', cls: 'neu' };
+  const t = (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  return { text: t, cls: v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu' };
+}
+
+function fmtPrice(v, cur) {
+  if (v == null) return '-';
+  if (cur === 'KRW') return Math.round(v).toLocaleString('ko-KR') + '원';
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtTime(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ko-KR') + ' ' + d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function toast(msg, ok = true) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + (ok ? 'toast-ok' : 'toast-err');
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2800);
+}
+
+// ═══════════════════════════════════════════
+//  SPARKLINE SVG
+// ═══════════════════════════════════════════
+function sparkSVG(prices, w = 100, h = 36) {
+  const valid = (prices || []).filter(p => p != null && !isNaN(p));
+  if (valid.length < 2) return `<svg width="${w}" height="${h}"><text x="6" y="20" fill="#484f58" font-size="10">-</text></svg>`;
+  const min = Math.min(...valid), max = Math.max(...valid);
+  const range = max - min || 1;
+  const pad = 3;
+  const pts = valid.map((p, i) => {
+    const x = pad + (i / (valid.length - 1)) * (w - pad * 2);
+    const y = pad + (1 - (p - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const up = valid[valid.length - 1] >= valid[0];
+  const col = up ? '#3fb950' : '#f85149';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6"
+      stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// ═══════════════════════════════════════════
+//  YAHOO FINANCE FETCH
+// ═══════════════════════════════════════════
+async function fetchYahoo(tk) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${tk}?interval=1d&range=1y&includePrePost=false`;
+
+  // 1) 직접 호출 시도
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const json = await res.json();
+      if (json?.chart?.result?.[0]) return json;
+    }
+  } catch {}
+
+  // 2) 프록시 순차 시도
+  for (const proxyFn of PROXIES) {
+    try {
+      const res = await fetch(proxyFn(url), { signal: AbortSignal.timeout(8000) });
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.chart?.result?.[0]) return json;
+      }
+    } catch {}
+  }
+
+  throw new Error(`${tk} — 데이터를 가져올 수 없습니다. 잠시 후 다시 시도해 주세요.`);
+}
+
+async function loadStockData(code, market) {
+  const tk = ticker(code, market);
+  const json = await fetchYahoo(tk);
+  const result = json?.chart?.result?.[0];
+  if (!result) throw new Error('데이터 없음');
+
+  const meta = result.meta;
+  const timestamps = result.timestamp || [];
+  const closes = result.indicators?.quote?.[0]?.close || [];
+
+  // Filter nulls but keep index alignment
+  const validPairs = timestamps.map((t, i) => [t, closes[i]]).filter(([, c]) => c != null);
+  const validCloses = validPairs.map(([, c]) => c);
+  if (validCloses.length === 0) throw new Error('가격 데이터 없음');
+
+  const cur = meta.regularMarketPrice ?? validCloses[validCloses.length - 1];
+  const currency = meta.currency ?? 'USD';
+
+  // 1D%
+  const d1pct = meta.regularMarketChangePercent ?? ((cur - (meta.chartPreviousClose ?? validCloses[validCloses.length - 2] ?? cur)) / (meta.chartPreviousClose ?? cur)) * 100;
+
+  // 1M% (≈22 trading days)
+  const idx1M = Math.max(0, validCloses.length - 22);
+  const price1M = validCloses[idx1M];
+  const d1Mpct = ((cur - price1M) / price1M) * 100;
+
+  // YTD%
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime() / 1000;
+  let ytdPrice = validCloses[0];
+  for (const [t, c] of validPairs) {
+    if (t >= yearStart) { ytdPrice = c; break; }
+  }
+  const ytdPct = ((cur - ytdPrice) / ytdPrice) * 100;
+
+  // SMA50
+  const last50 = validCloses.slice(-50);
+  const sma50 = last50.length >= 10 ? last50.reduce((a, b) => a + b, 0) / last50.length : null;
+  const aboveSMA50 = sma50 != null ? cur > sma50 : null;
+
+  // Sparkline (last 30 trading days)
+  const spark = validCloses.slice(-30);
+
+  // 종목명 (addStock에서 별도 호출 불필요)
+  const stockName = meta.longName || meta.shortName || null;
+
+  return { cur, currency, d1pct, d1Mpct, ytdPct, aboveSMA50, sma50, spark, stockName, updatedAt: new Date().toISOString() };
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function render() {
+  const container = document.getElementById('sectors-container');
+  container.innerHTML = '';
+  db.sectors.forEach(sec => container.appendChild(buildPanel(sec)));
+  initSortable(container);
+  updateLastUpdated();
+}
+
+function buildPanel(sec) {
+  const panel = document.createElement('div');
+  panel.className = 'sector-panel';
+  panel.dataset.id = sec.id;
+
+  // HEAD
+  const head = document.createElement('div');
+  head.className = 'sector-head' + (sec.collapsed ? ' is-collapsed' : '');
+
+  head.innerHTML = `
+    <span class="drag-handle" title="드래그하여 순서 변경">⠿</span>
+    <div class="sector-name-wrap">
+      <span class="sector-name-text" ondblclick="renameSector('${sec.id}', this)" title="더블클릭하여 이름 변경">${sec.name}</span>
+    </div>
+    <span class="badge">${sec.stocks.length}종목</span>
+    <div class="sector-actions">
+      <button class="btn btn-ghost" style="font-size:11px;padding:3px 9px" onclick="toggleAddForm('${sec.id}')">＋ 종목</button>
+      <button class="btn-icon" onclick="refreshSector('${sec.id}')" title="섹터 새로고침">🔄</button>
+      <button class="btn-icon" onclick="deleteSector('${sec.id}')" title="섹터 삭제" style="color:var(--red)">🗑</button>
+      <button class="btn-icon" onclick="toggleCollapse('${sec.id}')" title="접기/펼치기">
+        <span class="collapse-icon">▾</span>
+      </button>
+    </div>`;
+
+  head.querySelector('.collapse-icon').style.transform = sec.collapsed ? 'rotate(-90deg)' : '';
+  panel.appendChild(head);
+
+  if (!sec.collapsed) {
+    const body = document.createElement('div');
+    body.className = 'sector-body';
+    body.id = 'body-' + sec.id;
+
+    const table = document.createElement('table');
+    table.innerHTML = `<thead><tr>
+      <th>코드</th>
+      <th>종목명</th>
+      <th>현재가</th>
+      <th>1D %</th>
+      <th>1M %</th>
+      <th>YTD %</th>
+      <th>MA50</th>
+      <th style="min-width:108px">30일 스파이크</th>
+      <th>특징</th>
+      <th>주요이슈</th>
+      <th></th>
+    </tr></thead>`;
+
+    const tbody = document.createElement('tbody');
+    tbody.id = 'tbody-' + sec.id;
+
+    if (sec.stocks.length === 0) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="11">종목을 추가해 주세요</td></tr>`;
+    } else {
+      sec.stocks.forEach(st => tbody.appendChild(buildRow(sec.id, st)));
+    }
+
+    table.appendChild(tbody);
+    body.appendChild(table);
+
+    // Add stock form row
+    const addRow = document.createElement('div');
+    addRow.id = 'addform-' + sec.id;
+    addRow.style.display = 'none';
+    addRow.style.padding = '10px 14px';
+    addRow.style.borderTop = '1px solid var(--border)';
+    addRow.style.background = 'var(--bg)';
+    addRow.innerHTML = `
+      <div class="add-form">
+        <input class="add-input" id="code-${sec.id}" placeholder="종목코드 (예: 005930, AAPL)" style="width:220px"/>
+        <select class="add-select" id="mkt-${sec.id}">
+          <option value="KR">🇰🇷 KR (코스피)</option>
+          <option value="KQ">🇰🇷 KQ (코스닥)</option>
+          <option value="US">🇺🇸 US (미국)</option>
+        </select>
+        <button class="btn btn-green" onclick="addStock('${sec.id}')">추가</button>
+        <button class="btn btn-ghost" onclick="toggleAddForm('${sec.id}')">취소</button>
+        <span id="add-status-${sec.id}" style="font-size:11px;color:var(--muted)"></span>
+      </div>`;
+    body.appendChild(addRow);
+    panel.appendChild(body);
+  }
+
+  return panel;
+}
+
+function buildRow(sectorId, st) {
+  const tr = document.createElement('tr');
+  tr.id = 'row-' + st.id;
+  tr.dataset.stockId = st.id;
+  tr.dataset.sectorId = sectorId;
+
+  const pd = st.pd;
+  const priceTxt = pd ? fmtPrice(pd.cur, pd.currency) : '-';
+  const d1 = pd ? fmtPct(pd.d1pct) : { text: '-', cls: 'neu' };
+  const d1M = pd ? fmtPct(pd.d1Mpct) : { text: '-', cls: 'neu' };
+  const ytd = pd ? fmtPct(pd.ytdPct) : { text: '-', cls: 'neu' };
+
+  let smaBadge = `<span class="sma-badge sma-none">-</span>`;
+  if (pd && pd.aboveSMA50 !== null) {
+    smaBadge = pd.aboveSMA50
+      ? `<span class="sma-badge sma-above">▲ MA50 위</span>`
+      : `<span class="sma-badge sma-below">▼ MA50 아래</span>`;
+  }
+
+  const spark = pd && pd.spark ? sparkSVG(pd.spark) : sparkSVG(null);
+  const mktLabel = st.market === 'US' ? 'US' : st.market;
+
+  tr.innerHTML = `
+    <td class="code-cell">${st.code}</td>
+    <td class="name-cell">${st.name}<span class="mkt-badge mkt-${st.market}">${mktLabel}</span></td>
+    <td class="price-cell">${priceTxt}</td>
+    <td class="pct-cell ${d1.cls}">${d1.text}</td>
+    <td class="pct-cell ${d1M.cls}">${d1M.text}</td>
+    <td class="pct-cell ${ytd.cls}">${ytd.text}</td>
+    <td>${smaBadge}</td>
+    <td class="spark-cell">${spark}</td>
+    <td><div class="note-cell ${st.features ? '' : 'empty'}"
+          onclick="editNote(this, '${sectorId}', '${st.id}', 'features')">${st.features || ''}</div></td>
+    <td><div class="note-cell ${st.issues ? '' : 'empty'}"
+          onclick="editNote(this, '${sectorId}', '${st.id}', 'issues')">${st.issues || ''}</div></td>
+    <td>
+      <span style="display:flex;gap:3px;align-items:center">
+        <button class="btn-icon" title="새로고침" onclick="refreshStock('${sectorId}','${st.id}')">🔄</button>
+        <button class="btn-icon" title="삭제" style="color:var(--red)" onclick="deleteStock('${sectorId}','${st.id}')">✕</button>
+      </span>
+    </td>`;
+  return tr;
+}
+
+// ═══════════════════════════════════════════
+//  INLINE NOTE EDIT
+// ═══════════════════════════════════════════
+function editNote(el, sectorId, stockId, field) {
+  if (el.querySelector('textarea')) return;
+  const sec = db.sectors.find(s => s.id === sectorId);
+  const st = sec?.stocks.find(s => s.id === stockId);
+  if (!st) return;
+  const cur = st[field] || '';
+  const ta = document.createElement('textarea');
+  ta.value = cur;
+  el.innerHTML = '';
+  el.appendChild(ta);
+  el.classList.remove('empty');
+  ta.focus();
+  ta.addEventListener('blur', () => {
+    const val = ta.value.trim();
+    st[field] = val;
+    save();
+    el.innerHTML = val || '';
+    el.classList.toggle('empty', !val);
+  });
+  ta.addEventListener('keydown', e => { if (e.key === 'Escape') ta.blur(); });
+}
+
+// ═══════════════════════════════════════════
+//  REFRESH
+// ═══════════════════════════════════════════
+async function refreshStock(sectorId, stockId) {
+  const sec = db.sectors.find(s => s.id === sectorId);
+  const st = sec?.stocks.find(s => s.id === stockId);
+  if (!st) return;
+
+  const row = document.getElementById('row-' + stockId);
+  if (row) {
+    const cells = row.querySelectorAll('td');
+    cells[2].innerHTML = '<span class="spin">⟳</span>';
+  }
+
+  try {
+    st.pd = await loadStockData(st.code, st.market);
+    save();
+    const newRow = buildRow(sectorId, st);
+    if (row) row.replaceWith(newRow);
+    updateLastUpdated();
+  } catch (e) {
+    if (row) row.querySelectorAll('td')[2].textContent = '오류';
+    toast('데이터 로드 실패: ' + st.code, false);
+  }
+}
+
+async function refreshSector(sectorId) {
+  const sec = db.sectors.find(s => s.id === sectorId);
+  if (!sec) return;
+  setStatus(`${sec.name} 업데이트 중...`);
+  for (const st of sec.stocks) await refreshStock(sectorId, st.id);
+  setStatus('');
+  toast(`${sec.name} 업데이트 완료`);
+}
+
+async function refreshAll() {
+  setStatus('전체 업데이트 중...');
+  for (const sec of db.sectors) {
+    for (const st of sec.stocks) await refreshStock(sec.id, st.id);
+  }
+  setStatus('');
+  toast('전체 업데이트 완료');
+}
+
+function setStatus(msg) {
+  document.getElementById('refresh-status').textContent = msg;
+}
+
+function updateLastUpdated() {
+  let latest = null;
+  db.sectors.forEach(s => s.stocks.forEach(st => {
+    if (st.pd?.updatedAt) {
+      if (!latest || st.pd.updatedAt > latest) latest = st.pd.updatedAt;
+    }
+  }));
+  document.getElementById('last-updated').textContent = '업데이트: ' + fmtTime(latest);
+}
+
+// ═══════════════════════════════════════════
+//  ADD / DELETE
+// ═══════════════════════════════════════════
+function addSector() {
+  const name = prompt('섹터 이름을 입력하세요:');
+  if (!name?.trim()) return;
+  const sec = { id: uid(), name: name.trim(), collapsed: false, stocks: [] };
+  db.sectors.push(sec);
+  save();
+  render();
+  toast(`섹터 "${sec.name}" 추가됨`);
+}
+
+function deleteSector(sectorId) {
+  const sec = db.sectors.find(s => s.id === sectorId);
+  if (!confirm(`"${sec?.name}" 섹터를 삭제하시겠습니까?`)) return;
+  db.sectors = db.sectors.filter(s => s.id !== sectorId);
+  save(); render();
+}
+
+function toggleAddForm(sectorId) {
+  const el = document.getElementById('addform-' + sectorId);
+  if (!el) return;
+  const visible = el.style.display !== 'none';
+  el.style.display = visible ? 'none' : 'block';
+  if (!visible) document.getElementById('code-' + sectorId)?.focus();
+}
+
+async function addStock(sectorId) {
+  const codeEl = document.getElementById('code-' + sectorId);
+  const mktEl  = document.getElementById('mkt-'  + sectorId);
+  const statusEl = document.getElementById('add-status-' + sectorId);
+  const code = codeEl.value.trim();
+  const market = mktEl.value;
+  if (!code) return;
+
+  statusEl.textContent = '🔄 로딩 중... (최대 20초 소요)';
+  try {
+    const pd = await loadStockData(code, market);
+    const sec = db.sectors.find(s => s.id === sectorId);
+    // 종목명: Yahoo에서 받아온 이름 우선, 없으면 코드로 표시
+    const name = pd.stockName || code.toUpperCase();
+    const st = { id: uid(), code: code.toUpperCase(), market, name, features: '', issues: '', pd };
+
+    sec.stocks.push(st);
+    save();
+
+    const tbody = document.getElementById('tbody-' + sectorId);
+    const emptyRow = tbody?.querySelector('.empty-row');
+    if (emptyRow) emptyRow.remove();
+    tbody?.appendChild(buildRow(sectorId, st));
+
+    // update badge
+    const panel = document.querySelector(`.sector-panel[data-id="${sectorId}"]`);
+    const badge = panel?.querySelector('.badge');
+    if (badge) badge.textContent = sec.stocks.length + '종목';
+
+    codeEl.value = '';
+    statusEl.textContent = '';
+    toast(`${st.name} 추가됨`);
+  } catch (e) {
+    statusEl.textContent = '❌ ' + (e.message || '로드 실패 — 코드/시장 구분을 확인하세요');
+    toast('추가 실패: ' + code, false);
+  }
+}
+
+function deleteStock(sectorId, stockId) {
+  const sec = db.sectors.find(s => s.id === sectorId);
+  const st  = sec?.stocks.find(s => s.id === stockId);
+  if (!confirm(`"${st?.name}" 종목을 삭제하시겠습니까?`)) return;
+  sec.stocks = sec.stocks.filter(s => s.id !== stockId);
+  save();
+  const row = document.getElementById('row-' + stockId);
+  row?.remove();
+  const panel = document.querySelector(`.sector-panel[data-id="${sectorId}"]`);
+  const badge = panel?.querySelector('.badge');
+  if (badge) badge.textContent = sec.stocks.length + '종목';
+  if (sec.stocks.length === 0) {
+    const tbody = document.getElementById('tbody-' + sectorId);
+    if (tbody) tbody.innerHTML = `<tr class="empty-row"><td colspan="11">종목을 추가해 주세요</td></tr>`;
+  }
+}
+
+// ═══════════════════════════════════════════
+//  COLLAPSE / RENAME
+// ═══════════════════════════════════════════
+function toggleCollapse(sectorId) {
+  const sec = db.sectors.find(s => s.id === sectorId);
+  if (!sec) return;
+  sec.collapsed = !sec.collapsed;
+  save(); render();
+}
+
+function renameSector(sectorId, el) {
+  const sec = db.sectors.find(s => s.id === sectorId);
+  if (!sec) return;
+  const input = document.createElement('input');
+  input.className = 'sector-name-input';
+  input.value = sec.name;
+  el.replaceWith(input);
+  input.focus();
+  const commit = () => {
+    const v = input.value.trim();
+    if (v) { sec.name = v; save(); }
+    render();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = sec.name; input.blur(); } });
+}
+
+// ═══════════════════════════════════════════
+//  DRAG & DROP (SortableJS)
+// ═══════════════════════════════════════════
+function initSortable(container) {
+  Sortable.create(container, {
+    animation: 180,
+    handle: '.drag-handle',
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    onEnd(evt) {
+      const moved = db.sectors.splice(evt.oldIndex, 1)[0];
+      db.sectors.splice(evt.newIndex, 0, moved);
+      save();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+//  KEYBOARD SHORTCUT: Enter to add stock
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('add-input')) {
+    const sectorId = e.target.id.replace('code-', '');
+    addStock(sectorId);
+  }
+});
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+load();
+render();
+</script>
+</body>
+</html>
