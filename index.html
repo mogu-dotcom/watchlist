@@ -552,7 +552,9 @@ async function loadStockData(code, market) {
   let growth = { nextQ: { rev: null, eps: null }, curY: { rev: null, eps: null } };
   try { growth = await fetchGrowthData(tk); } catch {}
 
-  return { cur, currency, d1pct, d1Mpct, ytdPct, aboveSMA50, sma50, spark, rsi, growth, stockName, updatedAt: new Date().toISOString() };
+  const high52w = meta.fiftyTwoWeekHigh ?? Math.max(...validCloses);
+
+  return { cur, currency, d1pct, d1Mpct, ytdPct, aboveSMA50, sma50, spark, rsi, growth, stockName, high52w, updatedAt: new Date().toISOString() };
 }
 
 // ═══════════════════════════════════════════
@@ -610,6 +612,7 @@ function buildPanel(sec) {
       <th style="width:64px">YTD %</th>
       <th style="width:76px">MA50</th>
       <th style="width:70px" title="RSI(14) — 70↑ 과매수 · 30↓ 과매도">RSI</th>
+      <th style="width:62px" title="52주 신고가 갱신 시 ⭐ / 그 외 고점 대비 낙폭">52주</th>
       <th style="width:116px">30일 스파이크</th>
       <th style="width:70px" title="다음 분기 매출 YoY 성장률 추정치">다음Q<br>매출%</th>
       <th style="width:70px" title="다음 분기 EPS YoY 성장률 추정치">다음Q<br>EPS%</th>
@@ -624,7 +627,7 @@ function buildPanel(sec) {
     tbody.id = 'tbody-' + sec.id;
 
     if (sec.stocks.length === 0) {
-      tbody.innerHTML = `<tr class="empty-row"><td colspan="18">종목을 추가해 주세요</td></tr>`;
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="19">종목을 추가해 주세요</td></tr>`;
     } else {
       sec.stocks.forEach(st => tbody.appendChild(buildRow(sec.id, st)));
       initSortableRows(tbody, sec);
@@ -711,6 +714,17 @@ function buildRow(sectorId, st) {
   const cyRev = fmtG(g.curY?.rev ?? null);
   const cyEps = fmtEps(g.curY?.eps ?? null, g.curY?.epsNow ?? null, g.curY?.epsAgo ?? null);
 
+  // 52주 고가 / 낙폭
+  let high52Html = `<span style="color:var(--muted);font-size:11px">-</span>`;
+  if (pd && pd.high52w != null && pd.cur != null && pd.high52w > 0) {
+    const drawdown = (pd.cur - pd.high52w) / pd.high52w * 100;
+    if (drawdown >= -2) {
+      high52Html = `<span title="52주 신고가 갱신!" style="font-size:15px">⭐</span>`;
+    } else {
+      high52Html = `<span style="font-size:11px;color:var(--red)">${drawdown.toFixed(1)}%</span>`;
+    }
+  }
+
   const spark = pd && pd.spark ? sparkSVG(pd.spark) : sparkSVG(null);
   tr.innerHTML = `
     <td class="row-drag-handle" title="드래그로 순서 변경">⠿</td>
@@ -729,6 +743,7 @@ function buildRow(sectorId, st) {
     <td class="pct-cell ${ytd.cls}">${ytd.text}</td>
     <td>${smaBadge}</td>
     <td style="text-align:right">${rsiHtml}</td>
+    <td style="text-align:center">${high52Html}</td>
     <td class="spark-cell">${spark}</td>
     <td style="text-align:right">${nqRev}</td>
     <td style="text-align:right">${nqEps}</td>
