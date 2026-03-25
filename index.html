@@ -135,7 +135,23 @@
     .is-collapsed .collapse-icon { transform: rotate(-90deg); }
 
     /* ── TABLE ── */
-    .sector-body { overflow-x: auto; }
+    .sector-body {
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: transparent transparent;
+      transition: scrollbar-color 0.2s;
+    }
+    .sector-body:hover {
+      scrollbar-color: rgba(255,255,255,0.18) transparent;
+    }
+    .sector-body::-webkit-scrollbar { height: 4px; }
+    .sector-body::-webkit-scrollbar-track { background: transparent; }
+    .sector-body::-webkit-scrollbar-thumb {
+      background: transparent;
+      border-radius: 2px;
+    }
+    .sector-body:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+    .sector-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th {
       background: var(--surface2); color: var(--muted);
