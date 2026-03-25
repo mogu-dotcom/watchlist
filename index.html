@@ -445,8 +445,10 @@ async function fetchGrowthData(tk) {
   const getG = (period) => {
     const t = trends.find(x => x.period === period);
     return {
-      rev: t?.revenueEstimate?.growth?.raw ?? null,  // Revenue YoY 성장률
-      eps: t?.earningsEstimate?.growth?.raw ?? null, // EPS YoY 성장률
+      rev:    t?.revenueEstimate?.growth?.raw    ?? null, // Revenue YoY Sot'll
+      eps:    t?.earningsEstimate?.growth?.raw   ?? null, // EPS YoY Sot'll
+      epsNow: t?.earningsEstimate?.avg?.raw      ?? null, // ì¼ë ê³¼è ë©ì¼ë ìº ìì 
+      epsAgo: t?.earningsEstimate?.yearAgoEps?.raw ?? null, // ì ë ë¨ê¸° EPS
     };
   };
   return { nextQ: getG('+1q'), curY: getG('0y') };
@@ -674,11 +676,23 @@ function buildRow(sectorId, st) {
     const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
     return `<span class="growth-cell ${cls}">${v >= 0 ? '+' : ''}${pct}%</span>`;
   };
+  const fmtEps = (v, epsNow, epsAgo) => {
+    if (v == null && epsNow == null) return `<span class="growth-cell growth-na">-</span>`;
+    if (epsAgo != null && epsNow != null) {
+      if (epsAgo < 0 && epsNow > 0) return `<span class="growth-cell pos">흑자전환</span>`;
+      if (epsAgo > 0 && epsNow < 0) return `<span class="growth-cell neg">적자전환</span>`;
+      if (epsAgo < 0 && epsNow < 0) return `<span class="growth-cell neg">적자지속</span>`;
+    }
+    if (v == null) return `<span class="growth-cell growth-na">-</span>`;
+    const pct = (v * 100).toFixed(1);
+    const cls = v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
+    return `<span class="growth-cell ${cls}">${v >= 0 ? '+' : ''}${pct}%</span>`;
+  };
   const g = pd?.growth || {};
   const nqRev = fmtG(g.nextQ?.rev ?? null);
-  const nqEps = fmtG(g.nextQ?.eps ?? null);
+  const nqEps = fmtEps(g.nextQ?.eps ?? null, g.nextQ?.epsNow ?? null, g.nextQ?.epsAgo ?? null);
   const cyRev = fmtG(g.curY?.rev ?? null);
-  const cyEps = fmtG(g.curY?.eps ?? null);
+  const cyEps = fmtEps(g.curY?.eps ?? null, g.curY?.epsNow ?? null, g.curY?.epsAgo ?? null);
 
   const spark = pd && pd.spark ? sparkSVG(pd.spark) : sparkSVG(null);
   tr.innerHTML = `
